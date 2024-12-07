@@ -15,6 +15,7 @@ import numpy as np
 from questions import answer_question
 from functions import functions, run_function
 import json
+import requests
 
 # Get the directory of the current script
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -141,6 +142,16 @@ async def mozilla(update: Update, context: ContextTypes.DEFAULT_TYPE):
       answer = answer_question(df, question=update.message.text, debug=True)
       await context.bot.send_message(chat_id=update.effective_chat.id, text=answer)
 
+async def image(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  response = openai.images.generate(prompt=update.message.text,
+                                    model="dall-e-3",
+                                    n=1,
+                                    size="1024x1024")
+  image_url = response.data[0].url
+  image_response = requests.get(image_url)
+  await context.bot.send_photo(chat_id=update.effective_chat.id,
+                               photo=image_response.content)
+
 if __name__ == '__main__':
     application = ApplicationBuilder().token(tg_bot_token).build()
 
@@ -148,9 +159,11 @@ if __name__ == '__main__':
     chat_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), chat)
     
     mozilla_handler = CommandHandler('mozilla', mozilla)
+    image_handler = CommandHandler('image', image)
     application.add_handler(mozilla_handler)
 
     application.add_handler(start_handler)
     application.add_handler(chat_handler)
+    application.add_handler(image_handler)
 
     application.run_polling()
